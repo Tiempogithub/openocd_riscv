@@ -68,6 +68,8 @@ DRIVERFILES += %D%/jtag_tcp.c
 if DUMMY
 DRIVERFILES += %D%/dummy.c
 endif
+DRIVERFILES += %D%/jtag_tcp.c
+DRIVERFILES += %D%/jtag_tcp2.c
 if FTDI
 DRIVERFILES += %D%/ftdi.c %D%/mpsse.c
 endif
