@@ -52,6 +52,7 @@ extern struct adapter_driver parport_adapter_driver;
 extern struct adapter_driver dummy_adapter_driver;
 #endif
 extern struct adapter_driver jtag_tcp_adapter_driver;
+extern struct adapter_driver jtag_tcp2_adapter_driver;
 #if BUILD_FTDI == 1
 extern struct adapter_driver ftdi_adapter_driver;
 #endif
@@ -170,6 +171,7 @@ struct adapter_driver *adapter_drivers[] = {
 		&dummy_adapter_driver,
 #endif
 		&jtag_tcp_adapter_driver,
+		&jtag_tcp2_adapter_driver,
 #if BUILD_FTDI == 1
 		&ftdi_adapter_driver,
 #endif

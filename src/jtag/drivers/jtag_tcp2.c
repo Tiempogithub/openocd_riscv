@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include "hello.h"
 
-#include "jtag_tcp2.h" //from TESIC_JTAG repo
+#include "jtag_tcp2.h" //from jtaghub repo
 
 /* my private tap controller state, which tracks state for calling code */
 static tap_state_t jtag_tcp_state;
@@ -52,8 +52,10 @@ static int jtag_tcp2_speed(int speed){
 static int openocd_jtag_tcp2_init(void){
 	jtag_tcp_state = TAP_RESET;
   jtag_tcp2_remove_unused_warning();
-	if(jtag_tcp2_init(&clientSocket,7894,"127.0.0.1")){
-		LOG_ERROR("jtag_tcp2: Can't connect to the TCP server");
+  int port = 7895;
+  const char *host = "127.0.0.1";
+	if(jtag_tcp2_init(&clientSocket,port,host)){
+		LOG_ERROR("jtag_tcp2: Can't connect to the TCP server at %s:%d",host,port);
 		return ERROR_FAIL;
 	}
   LOG_DEBUG("%s", __func__);
