@@ -6,6 +6,7 @@
 #include <stdio.h>
 #ifdef _WIN32
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,7 +17,6 @@
 #include <unistd.h>
 #endif
 #include <string.h>
-
 
 #define DRSCAN 0
 #define IRSCAN 1
@@ -102,7 +102,6 @@ static int jtag_tcp2_scan_rsp(int client_socket, uint8_t *buffer, int scan_size)
   if(data_len > sizeof(rxBuffer)){
     return -1;
   }
-
   unsigned int remaining = data_len;
   while(remaining){
     unsigned int cnt = read(client_socket,buffer,remaining);
@@ -112,8 +111,7 @@ static int jtag_tcp2_scan_rsp(int client_socket, uint8_t *buffer, int scan_size)
       return -1;
     }
 	}
-
-	return 0;
+  return 0;
 }
 
 static int jtag_tcp2_scan(int client_socket, bool ir_scan, uint8_t *buffer, int scan_size){
