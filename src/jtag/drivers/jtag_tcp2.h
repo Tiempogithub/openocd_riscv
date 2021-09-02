@@ -27,6 +27,11 @@
 #define JTAG_TCP2_CMD_IRSCAN  4
 #define JTAG_TCP2_CMD_DRSCAN  5
 #define JTAG_TCP2_CMD_CHAIN   6
+#define JTAG_TCP2_CMD_FLUSH   7
+#define JTAG_TCP2_CMD_LOCK    8
+#define JTAG_TCP2_CMD_RELEASE 9
+#define JTAG_TCP2_CMD_IRSCAN_BUFFERED  10
+#define JTAG_TCP2_CMD_DRSCAN_BUFFERED  11
 
 typedef struct jtag_chain_cfg_struct_t {
   uint32_t ir_chain_length;
@@ -76,14 +81,18 @@ static int jtag_tcp2_reset(int client_socket){
   return 0;
 }
 
-static int jtag_tcp2_scan_cmd(int client_socket, bool ir_scan, uint8_t *buffer, int scan_size){
+static int jtag_tcp2_scan_cmd(int client_socket, bool ir_scan, uint8_t *buffer, int scan_size, bool buffered){
   uint32_t txBuffer[256] = {0};
   const unsigned int data_len = (scan_size + 7) / 8;
   if(data_len > sizeof(txBuffer)-8){
     return -1;
   }
   unsigned int len = 8;
-  txBuffer[0] = ir_scan ? JTAG_TCP2_CMD_IRSCAN : JTAG_TCP2_CMD_DRSCAN;
+  if(buffered){
+    txBuffer[0] = ir_scan ? JTAG_TCP2_CMD_IRSCAN_BUFFERED : JTAG_TCP2_CMD_DRSCAN_BUFFERED;
+  }else{
+    txBuffer[0] = ir_scan ? JTAG_TCP2_CMD_IRSCAN : JTAG_TCP2_CMD_DRSCAN;
+  }
 
   txBuffer[1] = scan_size;
   memcpy(txBuffer+2,buffer,data_len);
@@ -115,7 +124,7 @@ static int jtag_tcp2_scan_rsp(int client_socket, uint8_t *buffer, int scan_size)
 }
 
 static int jtag_tcp2_scan(int client_socket, bool ir_scan, uint8_t *buffer, int scan_size){
-  if(jtag_tcp2_scan_cmd(client_socket, ir_scan, buffer, scan_size)) return -1;
+  if(jtag_tcp2_scan_cmd(client_socket, ir_scan, buffer, scan_size,0)) return -1;
   return jtag_tcp2_scan_rsp(client_socket, buffer, scan_size);
 }
 
@@ -161,6 +170,39 @@ static int jtag_tcp2_set_chain (int client_socket, unsigned int ir_chain_length,
   return 0;
 }
 
+static int jtag_tcp2_flush(int client_socket){
+  uint32_t txBuffer[1];
+  txBuffer[0] = JTAG_TCP2_CMD_FLUSH;
+
+  if(send(client_socket,(char*)txBuffer,sizeof(txBuffer), 0) <= 0){
+    return -1;
+  }
+
+  return 0;
+}
+
+static int jtag_tcp2_lock(int client_socket){
+  uint32_t txBuffer[1];
+  txBuffer[0] = JTAG_TCP2_CMD_LOCK;
+
+  if(send(client_socket,(char*)txBuffer,sizeof(txBuffer), 0) <= 0){
+    return -1;
+  }
+
+  return 0;
+}
+
+static int jtag_tcp2_release(int client_socket){
+  uint32_t txBuffer[1];
+  txBuffer[0] = JTAG_TCP2_CMD_RELEASE;
+
+  if(send(client_socket,(char*)txBuffer,sizeof(txBuffer), 0) <= 0){
+    return -1;
+  }
+
+  return 0;
+}
+
 static void jtag_tcp2_remove_unused_warning(void){
     (void)jtag_tcp2_init;
     (void)jtag_tcp2_reset;
@@ -168,6 +210,9 @@ static void jtag_tcp2_remove_unused_warning(void){
     (void)jtag_tcp2_stableclocks;
     (void)jtag_tcp2_runtest;
     (void)jtag_tcp2_set_chain;
+    (void)jtag_tcp2_flush;
+    (void)jtag_tcp2_lock;
+    (void)jtag_tcp2_release;
 }
 
 #endif //__JTAG_TCP2_H__

@@ -77,6 +77,7 @@ static int openocd_jtag_tcp2_reset(void){
   return ERROR_OK;
 }
 
+#define OPENOCD_JTAG_TCP2_BUFFERED 1
 static int openocd_jtag_tcp2_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size){
   LOG_DEBUG("%s scan_type=%d", __func__,type);
   uint8_t txBuffer[256] = {0};
@@ -85,10 +86,10 @@ static int openocd_jtag_tcp2_scan(bool ir_scan, enum scan_type type, uint8_t *bu
     LOG_DEBUG("scan_size too large: %d",scan_size);
     return ERROR_FAIL;
   }
-  if(type != SCAN_IN){
+  if(type != SCAN_IN){//weird isn't it XD
     memcpy(txBuffer,buffer,data_len);
   }
-  if(jtag_tcp2_scan_cmd(clientSocket, ir_scan, txBuffer, scan_size))
+  if(jtag_tcp2_scan_cmd(clientSocket, ir_scan, txBuffer, scan_size,OPENOCD_JTAG_TCP2_BUFFERED))
 		return ERROR_FAIL;
 
 	return ERROR_OK;
@@ -130,6 +131,28 @@ static int openocd_jtag_tcp2_runtest(int num_cycles){
   return ERROR_OK;
 }
 
+static int openocd_jtag_tcp2_flush(void){
+  #if OPENOCD_JTAG_TCP2_BUFFERED
+    LOG_DEBUG("%s", __func__);
+    if(jtag_tcp2_flush(clientSocket)) return ERROR_FAIL;
+  #endif
+  return ERROR_OK;
+}
+static int openocd_jtag_tcp2_lock(void){
+  LOG_DEBUG("%s", __func__);
+  if(jtag_tcp2_lock(clientSocket))
+		return ERROR_FAIL;
+
+  return ERROR_OK;
+}
+static int openocd_jtag_tcp2_release(void){
+  LOG_DEBUG("%s", __func__);
+  if(jtag_tcp2_release(clientSocket))
+		return ERROR_FAIL;
+
+  return ERROR_OK;
+}
+
 int jtag_tcp2_execute_queue(void){
   LOG_DEBUG("%s", __func__);
   struct jtag_command *cmd;
@@ -137,9 +160,12 @@ int jtag_tcp2_execute_queue(void){
 	uint8_t *buffer;
 	int scan_size;
 	enum scan_type type;
+  int cmdcnt=0;
 
 	for (cmd = jtag_command_queue; retval == ERROR_OK && cmd != NULL;
 	     cmd = cmd->next) {
+    if(cmdcnt==0) openocd_jtag_tcp2_lock();
+    cmdcnt++;
 		switch (cmd->type) {
 		case JTAG_RESET:
       LOG_DEBUG("JTAG_RESET");
@@ -175,6 +201,7 @@ int jtag_tcp2_execute_queue(void){
 			break;
 		}
 	}
+  if(cmdcnt) openocd_jtag_tcp2_flush();
   LOG_DEBUG("response loop");
 	for (cmd = jtag_command_queue; retval == ERROR_OK && cmd != NULL;
 	     cmd = cmd->next) {
@@ -196,7 +223,7 @@ int jtag_tcp2_execute_queue(void){
 	}
 	if(retval != 0)
 		LOG_ERROR("jtag_tcp2 queue error\n");
-
+  if(cmdcnt) openocd_jtag_tcp2_release();
 	return retval;
 }
 
