@@ -98,7 +98,7 @@ static int openocd_jtag_tcp2_scan(bool ir_scan, enum scan_type type, uint8_t *bu
 static int openocd_jtag_tcp2_scan_rsp(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size){
   LOG_DEBUG("%s scan_type=%d", __func__,type);
 
-  uint8_t rxBuffer[256] = {0};
+  uint8_t rxBuffer[1024*256] = {0};
   const unsigned int data_len = (scan_size + 7) / 8;
   if(data_len > sizeof(rxBuffer)){
     LOG_DEBUG("scan_size too large: %d",scan_size);
@@ -110,6 +110,7 @@ static int openocd_jtag_tcp2_scan_rsp(bool ir_scan, enum scan_type type, uint8_t
   }else{
     LOG_DEBUG("type != SCAN_OUT");
   }
+  LOG_DEBUG("scan_size = %d",scan_size);
   if(jtag_tcp2_scan_rsp(clientSocket, buffer, scan_size))
     return ERROR_FAIL;
 	return ERROR_OK;
